@@ -38,7 +38,8 @@ def upload(table, content, host=CH_HOST):
     '''Uploads data to table in ClickHous'''
     content = content.encode('utf-8')
     query_dict = {
-             'query': 'INSERT INTO ' + table + ' FORMAT TabSeparatedWithNames '
+    #         'query': 'INSERT INTO ' + table + ' FORMAT TabSeparatedWithNames '
+             'query': 'INSERT INTO ' + table + ' FORMAT TSV '
         }
     if (CH_USER == '') and (CH_PASSWORD == ''):
         r = requests.post(host, data=content, params=query_dict, verify=SSL_VERIFY)
@@ -73,8 +74,8 @@ def get_tables():
 
 def get_dbs():
     ''''Returns list of databases'''
-    return get_clickhouse_data('SHOW DATABASES')\
-        .strip().split('\n')
+    return 'SHOW DATABASES Dummy'
+		#get_clickhouse_data('SHOW DATABASES').strip().split('\n')
 
 
 def is_table_present(source):
@@ -83,7 +84,8 @@ def is_table_present(source):
 
 def is_db_present():
     '''Returns whether a database is already present in clickhouse'''
-    return CH_DATABASE in get_dbs()
+    return True
+		#CH_DATABASE in get_dbs()
 
 def create_db():
     '''Creates database in clickhouse'''
@@ -129,7 +131,7 @@ def create_table(source, fields):
             engine = 'Log'
 
     ch_field_types = utils.get_ch_fields_config()
-    ch_fields = map(get_ch_field_name, fields)
+    ch_fields = list(map(get_ch_field_name, fields))
     
     for i in range(len(fields)):
         field_statements.append(field_tmpl.format(name= ch_fields[i],
@@ -147,12 +149,12 @@ def save_data(source, fields, data):
     '''Inserts data into ClickHouse table'''
 
     if not is_db_present():
-        logger.info('Database created')
         create_db()
+        logger.info('Database created')
 
     if not is_table_present(source):
-        logger.info('Table created')
         create_table(source, fields)
+        logger.info('Table created')
 
     upload(get_source_table_name(source), data)
 
